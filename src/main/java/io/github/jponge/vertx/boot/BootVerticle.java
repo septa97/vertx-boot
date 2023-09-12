@@ -25,10 +25,8 @@
 
 package io.github.jponge.vertx.boot;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -47,10 +45,7 @@ public class BootVerticle extends AbstractVerticle {
   private static final String VERTX_BOOT_VERTICLES_PATH = "vertx-boot.verticles";
   private static final String CONF_KEY = "configuration";
   private static final String INSTANCES_KEY = "instances";
-  private static final String EXTRA_CLASSPATH_KEY = "extra-classpath";
   private static final String HA_KEY = "high-availability";
-  private static final String ISOLATED_CLASSES_KEY = "isolated-classes";
-  private static final String ISOLATION_GROUP_KEY = "isolation-group";
   private static final String MAXWORKER_EXECTIME_KEY = "max-worker-execution-time";
   private static final String WORKER_KEY = "worker";
   private static final String WORKER_POOLNAME_KEY = "worker-pool-name";
@@ -63,11 +58,11 @@ public class BootVerticle extends AbstractVerticle {
       List<Config> configList = bootConfig.getConfig(VERTX_BOOT_VERTICLES_PATH).root().keySet().stream()
         .map(key -> bootConfig.getConfig(VERTX_BOOT_VERTICLES_PATH + "." + key)).collect(Collectors.toList());
 
-      List<Future> futures = configList.stream()
+      List<Future<String>> futures = configList.stream()
         .map(this::deployVerticle)
         .collect(Collectors.toList());
 
-      CompositeFuture.all(futures).onComplete(ar -> {
+      Future.all(futures).onComplete(ar -> {
         if (ar.succeeded()) {
           promise.complete();
         } else {
@@ -86,10 +81,7 @@ public class BootVerticle extends AbstractVerticle {
       DeploymentOptions options = new DeploymentOptions()
         .setInstances(getInstances(config))
         .setConfig(getConfig(config))
-        .setExtraClasspath(getExtraClasspath(config))
         .setHa(getHa(config))
-        .setIsolatedClasses(getIsolatedClasses(config))
-        .setIsolationGroup(getIsolationGroup(config))
         .setMaxWorkerExecuteTime(getMaxWorkerExecuteTime(config))
         .setWorker(getWorker(config))
         .setWorkerPoolName(getWorkerPoolName(config))
@@ -135,32 +127,11 @@ public class BootVerticle extends AbstractVerticle {
     return Long.MAX_VALUE;
   }
 
-  private String getIsolationGroup(Config config) {
-    if (config.hasPath(ISOLATION_GROUP_KEY)) {
-      return config.getString(ISOLATION_GROUP_KEY);
-    }
-    return null;
-  }
-
-  private List<String> getIsolatedClasses(Config config) {
-    if (config.hasPath(ISOLATED_CLASSES_KEY)) {
-      return config.getStringList(ISOLATED_CLASSES_KEY);
-    }
-    return null;
-  }
-
   private boolean getHa(Config config) {
     if (config.hasPath(HA_KEY)) {
       return config.getBoolean(HA_KEY);
     }
     return false;
-  }
-
-  private List<String> getExtraClasspath(Config config) {
-    if (config.hasPath(EXTRA_CLASSPATH_KEY)) {
-      return config.getStringList(EXTRA_CLASSPATH_KEY);
-    }
-    return null;
   }
 
   private JsonObject getConfig(Config config) {
